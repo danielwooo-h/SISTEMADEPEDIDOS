@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="./Imagens/images.png">
+    <title>Sistema de Controle de Pedidos</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <img src="./Imagens/images.png" alt="Logo" class="logo-sidebar">
+                <div class="menu-toggle"><i class="fas fa-bars"></i></div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <button onclick="showTab('atendimento')" class="nav-item active" id="btn-atendimento">
+                    <i class="fas fa-headset"></i>
+                    <span>Atendimento</span>
+                </button>
+                
+                <button onclick="showTab('estoque')" class="nav-item" id="btn-estoque">
+                    <div class="nav-badge-container">
+                        <span class="nav-badge-count" id="nav-badge-total">0</span>
+                        <i class="fas fa-boxes"></i>
+                    </div>
+                    <span>Estoque / Expedição</span>
+                </button>
+                
+                <button onclick="showTab('historico')" class="nav-item" id="btn-historico">
+                    <i class="fas fa-history"></i>
+                    <span>Histórico</span>
+                </button>
+
+                <button onclick="showTab('estatisticas')" class="nav-item" id="btn-estatisticas">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Estatísticas</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <span class="version">v2.0</span>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <div class="main-wrapper">
+            <header class="top-header">
+                <h1 id="page-title">Controle Operacional de Pedidos</h1>
+                <div class="user-profile">
+                    <span id="current-time-display">00:00:00</span>
+                    <i class="fas fa-user-circle"></i>
+                </div>
+            </header>
+
+            <main>
+                <!-- Tela de Atendimento -->
+                <section id="atendimento" class="tab-content active">
+                    <div class="form-container">
+                        <h2>Novo Registro de Ocorrência</h2>
+                        <form id="form-ocorrencia">
+                            <div class="form-group">
+                                <label>Tipo de Ocorrência *</label>
+                                <div class="tipo-grid" id="tipo-selector">
+                                    <button type="button" class="tipo-btn" data-value="cancelado" data-color="#e74c3c">
+                                        <i class="fas fa-times-circle"></i> Cancelado
+                                    </button>
+                                    <button type="button" class="tipo-btn" data-value="mudanca_endereco" data-color="#3498db">
+                                        <i class="fas fa-map-marker-alt"></i> Mudança de Endereço
+                                    </button>
+                                    <button type="button" class="tipo-btn" data-value="envio_urgente" data-color="#ff0000">
+                                        <i class="fas fa-bolt"></i> Envio Urgente
+                                    </button>
+                                    <button type="button" class="tipo-btn" data-value="adicionar_unir" data-color="#2ecc71">
+                                        <i class="fas fa-plus-circle"></i> Adicionar / Unir
+                                    </button>
+                                    <button type="button" class="tipo-btn" data-value="reenvios" data-color="#f39c12">
+                                        <i class="fas fa-redo"></i> Reenvios
+                                    </button>
+                                    <button type="button" class="tipo-btn" data-value="pagamento_pendente" data-color="#f1c40f">
+                                        <i class="fas fa-dollar-sign"></i> Pagamento Boleto/Pix
+                                    </button>
+                                    <button type="button" class="tipo-btn" data-value="devolucao" data-color="#96281b">
+                                        <i class="fas fa-box-open"></i> Devolução
+                                    </button>
+                                    <button type="button" class="tipo-btn" data-value="estorno" data-color="#d35400">
+                                        <i class="fas fa-exchange-alt"></i> Estornos
+                                    </button>
+                                    <button type="button" class="tipo-btn" data-value="suspensao_entrega" data-color="#c0392b">
+                                        <i class="fas fa-hand-paper"></i> Suspensão
+                                    </button>
+                                    <button type="button" class="tipo-btn" data-value="outros" data-color="#7f8c8d">
+                                        <i class="fas fa-ellipsis-h"></i> Outros
+                                    </button>
+                                </div>
+                                <input type="hidden" id="tipo" name="tipo" required>
+                            </div>
+
+                            <div id="subgrupo-container" class="form-group hidden">
+                                <label>Subgrupos da Ocorrência *</label>
+                                <div id="subgrupo-selector" class="subgrupo-grid">
+                                    <!-- Subgrupos serão inseridos via JS -->
+                                </div>
+                                <input type="hidden" id="subgrupo" name="subgrupo">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="numero_pedido">Número do Pedido *</label>
+                                <input type="text" id="numero_pedido" placeholder="Digite o número do pedido" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="cliente">Cliente</label>
+                                <input type="text" id="cliente" placeholder="Nome do cliente">
+                            </div>
+                            <div id="campos-endereco" class="hidden">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="endereco_antigo">Endereço Antigo</label>
+                                        <textarea id="endereco_antigo" placeholder="Endereço atual"></textarea>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="endereco_novo">Endereço Novo</label>
+                                        <textarea id="endereco_novo" placeholder="Novo endereço"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="observacao">Observação</label>
+                                <textarea id="observacao" placeholder="Detalhes adicionais..."></textarea>
+                            </div>
+                            <button type="submit" class="submit-btn">Salvar Ocorrência</button>
+                        </form>
+                        <div id="mensagem-sucesso" class="hidden">Ocorrência salva com sucesso!</div>
+                    </div>
+                </section>
+
+                <!-- Tela de Estoque / Expedição (Navegação por Setores) -->
+                <section id="estoque" class="tab-content">
+                    <!-- 1. Tela de Seleção de Setores (Cards Grandes) -->
+                    <div id="setores-selection" class="help-center-grid">
+                        <div class="help-card" onclick="abrirSetor('atendimento')">
+                            <div class="help-badge" id="badge-atendimento-total" style="display: none;">0</div>
+                            <div class="help-icon-circle"><i class="fas fa-headset"></i></div>
+                            <span class="help-label">Atendimento</span>
+                        </div>
+                        <div class="help-card" onclick="abrirSetor('financeiro')">
+                            <div class="help-badge" id="badge-financeiro-total" style="display: none;">0</div>
+                            <div class="help-icon-circle"><i class="fas fa-dollar-sign"></i></div>
+                            <span class="help-label">Financeiro</span>
+                        </div>
+                        <div class="help-card" onclick="abrirSetor('estoque-expedicao')">
+                            <div class="help-badge" id="badge-estoque-expedicao-total" style="display: none;">0</div>
+                            <div class="help-icon-circle"><i class="fas fa-truck-loading"></i></div>
+                            <span class="help-label">Estoque / Expedição</span>
+                        </div>
+                    </div>
+
+                    <!-- 2. Detalhes do Setor Selecionado (Categorias e Pedidos) -->
+                    <div id="setor-dashboard" class="hidden">
+                        <div class="setor-header-v2">
+                            <button class="back-btn" onclick="voltarParaSetores()">
+                                <i class="fas fa-arrow-left"></i> Voltar aos Setores
+                            </button>
+                            <h2 id="setor-titulo-exibicao">Setor</h2>
+                        </div>
+                        <div id="categorias-wrapper" class="categories-container-v3">
+                            <!-- Categorias e pedidos do setor aparecerão aqui -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Tela de Histórico -->
+                <section id="historico" class="tab-content">
+                    <h2>Histórico de Ocorrências</h2>
+                    <div class="filters">
+                        <input type="date" id="filtro-data">
+                        <select id="filtro-tipo">
+                            <option value="">Todos os tipos</option>
+                            <option value="cancelado">Cancelado</option>
+                            <option value="mudanca_endereco">Mudança de Endereço</option>
+                            <option value="envio_urgente">Envio Com Urgência</option>
+                            <option value="adicionar_unir">Adicionar / Unir</option>
+                            <option value="reenvios">Reenvios</option>
+                            <option value="pagamento_pendente">Pagamento Boleto/Pix - Enviar</option>
+                            <option value="devolucao">Devolução</option>
+                            <option value="estorno">Estornos</option>
+                            <option value="suspensao_entrega">Suspensão de Entrega</option>
+                            <option value="outros">Outros</option>
+                        </select>
+                        <button onclick="carregarHistorico()" class="filter-btn">Filtrar</button>
+                    </div>
+                    <div id="lista-historico">
+                        <!-- Histórico será inserido aqui via JS -->
+                    </div>
+
+                    <div class="excluidos-section" style="margin-top: 50px; border-top: 2px solid #eee; padding-top: 30px;">
+                        <h2 style="color: #e74c3c;"><i class="fas fa-trash-alt"></i> Ocorrências Excluídas</h2>
+                        <div id="lista-excluidos">
+                            <!-- Excluídos serão inseridos aqui via JS -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Tela de Estatísticas -->
+                <section id="estatisticas" class="tab-content">
+                    <h2>Painel de Estatísticas</h2>
+                    <div class="stats-overview">
+                        <div class="stat-card primary">
+                            <div class="stat-value" id="stat-total-hoje">0</div>
+                            <div class="stat-label">Ocorrências Hoje</div>
+                        </div>
+                        <div class="stat-card success">
+                            <div class="stat-value" id="stat-concluidos-hoje">0</div>
+                            <div class="stat-label">Concluídos Hoje</div>
+                        </div>
+                        <div class="stat-card warning">
+                            <div class="stat-value" id="stat-pendentes-total">0</div>
+                            <div class="stat-label">Pendentes Atuais</div>
+                        </div>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stats-box chart-box">
+                            <h3>Distribuição por Tipo (Gráfico)</h3>
+                            <div class="chart-container">
+                                <canvas id="chart-ocorrencias"></canvas>
+                            </div>
+                        </div>
+                        <div class="stats-box">
+                            <h3>Distribuição por Tipo (Lista)</h3>
+                            <div id="stats-tipo-lista" class="stats-list">
+                                <!-- Lista de tipos e contagem -->
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="script.js"></script>
+
+    <!-- Modal de Detalhes -->
+    <div id="modal-detalhes" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <div id="modal-body">
+                <!-- Conteúdo do modal será inserido via JS -->
+            </div>
+        </div>
+    </div>
+</body>
+</html>
