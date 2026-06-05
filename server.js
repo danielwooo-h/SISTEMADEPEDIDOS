@@ -110,6 +110,22 @@ function initializeDatabase() {
                 console.log('Coluna "subgrupo" adicionada ao esquema existente.');
             }
         });
+
+        // Nova tabela para Recalculos e Trocas
+        db.run(`CREATE TABLE IF NOT EXISTS recalculos_trocas (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nome TEXT NOT NULL,
+            numero_pedido TEXT NOT NULL,
+            valor REAL NOT NULL,
+            justificativa TEXT NOT NULL,
+            tipo_solicitacao TEXT NOT NULL,
+            status TEXT DEFAULT 'Pendente',
+            criado_em DATETIME,
+            atualizado_em DATETIME
+        )`, (err) => {
+            if (err) console.error('Erro ao criar tabela recalculos_trocas:', err.message);
+            else console.log('Tabela "recalculos_trocas" verificada.');
+        });
     });
 }
 
@@ -263,6 +279,63 @@ app.get('/api/ocorrencias/excluidos', (req, res) => {
         }
         console.log(`Total de excluídos encontrados: ${rows.length}`);
         res.json(rows);
+    });
+});
+
+// --- Rotas para Recálculos e Trocas ---
+
+// POST /api/recalculos - Cria nova solicitação
+app.post('/api/recalculos', (req, res) => {
+    const { nome, numero_pedido, valor, justificativa, tipo_solicitacao } = req.body;
+    const timestamp = getBrasiliaISODate();
+
+    const sql = `INSERT INTO recalculos_trocas (nome, numero_pedido, valor, justificativa, tipo_solicitacao, criado_em, atualizado_em) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?)`;
+    
+    db.run(sql, [nome, numero_pedido, valor, justificativa, tipo_solicitacao, timestamp, timestamp], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        io.emit('atualizar_recalculos');
+        res.status(201).json({ id: this.lastID, message: 'Solicitação registrada com sucesso!' });
+    });
+});
+
+// GET /api/recalculos - Lista solicitações com filtros
+app.get('/api/recalculos', (req, res) => {
+    const { nome, numero_pedido, status } = req.query;
+    let sql = `SELECT * FROM recalculos_trocas WHERE 1=1`;
+    const params = [];
+
+    if (nome) {
+        sql += ` AND nome LIKE ?`;
+        params.push(`%${nome}%`);
+    }
+    if (numero_pedido) {
+        sql += ` AND numero_pedido LIKE ?`;
+        params.push(`%${numero_pedido}%`);
+    }
+    if (status) {
+        sql += ` AND status = ?`;
+        params.push(status);
+    }
+
+    sql += ` ORDER BY criado_em DESC`;
+
+    db.all(sql, params, (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+// PATCH /api/recalculos/:id/status - Atualiza status
+app.patch('/api/recalculos/:id/status', (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+    const timestamp = getBrasiliaISODate();
+
+    db.run(`UPDATE recalculos_trocas SET status = ?, atualizado_em = ? WHERE id = ?`, [status, timestamp, id], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        io.emit('atualizar_recalculos');
+        res.json({ message: 'Status atualizado com sucesso!' });
     });
 });
 

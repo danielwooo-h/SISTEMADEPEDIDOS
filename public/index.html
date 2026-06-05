@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
     <div class="app-container">
@@ -38,6 +39,11 @@
                 <button onclick="showTab('historico')" class="nav-item" id="btn-historico">
                     <i class="fas fa-history"></i>
                     <span>Histórico</span>
+                </button>
+
+                <button onclick="showTab('recalculos')" class="nav-item" id="btn-recalculos">
+                    <i class="fas fa-calculator"></i>
+                    <span>Recálculos e Trocas</span>
                 </button>
 
                 <button onclick="showTab('estatisticas')" class="nav-item" id="btn-estatisticas">
@@ -240,6 +246,63 @@
                             <div id="stats-tipo-lista" class="stats-list">
                                 <!-- Lista de tipos e contagem -->
                             </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Sessão de Recálculos e Trocas -->
+                <section id="recalculos" class="tab-content">
+                    <div class="form-container recalculos-container">
+                        <h2>Solicitação de Recálculo ou Troca</h2>
+                        <form id="form-recalculo">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="rec-nome">Nome *</label>
+                                    <input type="text" id="rec-nome" placeholder="Nome do solicitante" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="rec-pedido">Número do Pedido *</label>
+                                    <input type="text" id="rec-pedido" placeholder="Número do pedido" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="rec-valor">Valor (R$) *</label>
+                                    <input type="number" id="rec-valor" step="0.01" placeholder="0.00" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="rec-tipo">Tipo da Solicitação *</label>
+                                    <select id="rec-tipo" required>
+                                        <option value="">Selecione...</option>
+                                        <option value="Recalculo de Frete">Recálculo de Frete</option>
+                                        <option value="Troca de Produto">Troca de Produto</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="rec-justificativa">Justificativa *</label>
+                                <textarea id="rec-justificativa" placeholder="Descreva o motivo da solicitação" required></textarea>
+                            </div>
+                            <button type="submit" class="submit-btn">Registrar Solicitação</button>
+                        </form>
+                    </div>
+
+                    <div class="history-container" style="margin-top: 40px;">
+                        <h2>Histórico Geral de Solicitações</h2>
+                        <div class="filters-bar" style="margin-bottom: 20px; display: flex; gap: 15px; flex-wrap: wrap;">
+                            <input type="text" id="filter-rec-nome" placeholder="Filtrar por Nome" class="filter-input">
+                            <input type="text" id="filter-rec-pedido" placeholder="Filtrar por Pedido" class="filter-input">
+                            <select id="filter-rec-status" class="filter-input">
+                                <option value="">Todos os Status</option>
+                                <option value="Pendente">Pendente</option>
+                                <option value="Em andamento">Em andamento</option>
+                                <option value="Finalizado">Finalizado</option>
+                            </select>
+                            <button onclick="carregarRecalculos()" class="filter-btn"><i class="fas fa-search"></i> Filtrar</button>
+                            <button onclick="exportarRecalculosExcel()" class="download-btn"><i class="fas fa-file-excel"></i> Baixar Excel</button>
+                        </div>
+                        <div id="lista-recalculos" class="table-container">
+                            <!-- Tabela de solicitações será inserida aqui via JS -->
                         </div>
                     </div>
                 </section>

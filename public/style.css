@@ -1073,6 +1073,104 @@ main {
     font-weight: 700;
 }
 
+/* --- Recálculos e Trocas --- */
+.recalculos-container {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.recalculos-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.recalculos-table th, .recalculos-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.badge-type {
+    background: #f1f5f9;
+    color: var(--secondary-color);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.badge-status {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.status-pendente { background: #fee2e2; color: #991b1b; }
+.status-em-andamento { background: #fef3c7; color: #92400e; }
+.status-finalizado { background: #dcfce7; color: #166534; }
+
+.status-select {
+    padding: 6px;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    font-size: 0.85rem;
+    background: white;
+    cursor: pointer;
+}
+
+.justificativa-cell {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.filter-input {
+    padding: 8px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    outline: none;
+    min-width: 150px;
+}
+
+.filter-btn {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.2s;
+}
+
+.filter-btn:hover {
+    background: var(--secondary-color);
+}
+
+.download-btn {
+    background: #10b981;
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.download-btn:hover {
+    background: #059669;
+}
+
 .nav-badge-container {
     position: relative;
 }

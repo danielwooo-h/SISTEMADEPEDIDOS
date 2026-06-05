@@ -79,6 +79,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    socket.on('atualizar_recalculos', () => {
+        const activeTab = document.querySelector('.tab-content.active').id;
+        if (activeTab === 'recalculos') {
+            carregarRecalculos();
+        }
+    });
+
     // Configurar seletor de tipos (Atendimento)
     setupTipoSelector();
 
@@ -93,6 +100,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Event listener para o formulário
     document.getElementById('form-ocorrencia').addEventListener('submit', handleFormSubmit);
+
+    // Event listener para o formulário de recálculos
+    const formRecalculo = document.getElementById('form-recalculo');
+    if (formRecalculo) {
+        formRecalculo.addEventListener('submit', handleRecalculoSubmit);
+    }
 });
 
 function atualizarRelogio() {
@@ -136,6 +149,8 @@ function showTab(tabId) {
         carregarHistorico();
     } else if (tabId === 'estatisticas') {
         carregarEstatisticas();
+    } else if (tabId === 'recalculos') {
+        carregarRecalculos();
     }
 }
 
@@ -1182,7 +1197,7 @@ async function carregarEstatisticas() {
 
         // 1. Overview
         const concluidosHoje = historico.filter(p => p.data_operacao === hoje).length;
-        const totalHoje = pendentes.filter(p => p.data_operacao === hoje).length + concluidosHoje;
+        const totalHoje = concluidosHoje + pendentes.filter(p => p.criado_em.startsWith(hoje)).length;
         
         document.getElementById('stat-total-hoje').innerText = totalHoje;
         document.getElementById('stat-concluidos-hoje').innerText = concluidosHoje;
@@ -1197,62 +1212,64 @@ async function carregarEstatisticas() {
             });
         });
 
-        const listaTipos = document.getElementById('stats-tipo-lista');
-        listaTipos.innerHTML = '';
-        
-        const labels = {
-            'cancelado': 'Cancelados',
-            'mudanca_endereco': 'Mudança de Endereço',
+        const configNomes = {
+            'cancelado': 'Cancelamento',
+            'mudanca_endereco': 'Mudança Endereço',
             'envio_urgente': 'Envio Urgente',
-            'adicionar_unir': 'Adicionar / Unir',
-            'reenvios': 'Reenvios',
+            'adicionar_unir': 'Adicionar/Unir',
+            'reenvios': 'Reenvio',
             'pagamento_pendente': 'Pagamento Boleto/Pix',
             'devolucao': 'Devolução',
-            'estorno': 'Estornos',
-            'suspensao_entrega': 'Suspensão',
+            'estorno': 'Estorno',
+            'lembrete': 'Lembrete',
+            'suspensao_entrega': 'Suspensão Entrega',
+            'manifestacao': 'Manifestação',
+            'protocolo': 'Protocolo',
             'outros': 'Outros'
         };
 
-        Object.keys(tiposContagem).sort((a,b) => tiposContagem[b] - tiposContagem[a]).forEach(tipo => {
-            const item = document.createElement('div');
-            item.className = 'stats-item';
-            item.innerHTML = `
-                <span>${labels[tipo] || tipo}</span>
-                <span class="stats-count">${tiposContagem[tipo]}</span>
-            `;
-            listaTipos.appendChild(item);
-        });
+        const labels = Object.keys(tiposContagem).map(k => configNomes[k] || k);
+        const values = Object.values(tiposContagem);
 
-        // 3. Atualizar Gráfico
-        renderizarGrafico(tiposContagem, labels);
+        // Renderizar Lista
+        const listaHtml = Object.keys(tiposContagem).map(k => `
+            <div class="stat-list-item">
+                <span>${configNomes[k] || k}</span>
+                <span class="badge-count">${tiposContagem[k]}</span>
+            </div>
+        `).join('');
+        document.getElementById('stats-tipo-lista').innerHTML = listaHtml || '<p>Nenhuma pendência.</p>';
+
+        // Renderizar Gráfico
+        renderizarGrafico(labels, values);
 
     } catch (error) {
         console.error('Erro ao carregar estatísticas:', error);
     }
 }
 
-function renderizarGrafico(contagem, labels) {
+function renderizarGrafico(labels, values) {
     const ctx = document.getElementById('chart-ocorrencias').getContext('2d');
     
-    const data = {
-        labels: Object.keys(contagem).map(key => labels[key] || key),
-        datasets: [{
-            label: 'Ocorrências Pendentes',
-            data: Object.values(contagem),
-            backgroundColor: [
-                '#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6',
-                '#34495e', '#1abc9c', '#e67e22', '#95a5a6', '#d35400'
-            ],
-            borderWidth: 1
-        }]
-    };
-
     if (myChart) {
         myChart.destroy();
     }
 
+    if (labels.length === 0) return;
+
     myChart = new Chart(ctx, {
         type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: values,
+                backgroundColor: [
+                    '#e74c3c', '#3498db', '#ff0000', '#2ecc71', '#f39c12', 
+                    '#f1c40f', '#96281b', '#d35400', '#c0392b', '#7f8c8d'
+                ],
+                borderWidth: 0
+            }]
+        },
         options: {
             responsive: true,
             maintainAspectRatio: false,
@@ -1260,12 +1277,189 @@ function renderizarGrafico(contagem, labels) {
                 legend: {
                     position: 'bottom',
                     labels: {
-                        boxWidth: 12,
-                        font: { size: 11 }
+                        color: '#64748b',
+                        padding: 20,
+                        font: { size: 12 }
                     }
                 }
             }
-        },
-        data: data
+        }
     });
+}
+
+// --- Funções para Recálculos e Trocas ---
+
+async function handleRecalculoSubmit(e) {
+    e.preventDefault();
+
+    const data = {
+        nome: document.getElementById('rec-nome').value,
+        numero_pedido: document.getElementById('rec-pedido').value,
+        valor: parseFloat(document.getElementById('rec-valor').value),
+        justificativa: document.getElementById('rec-justificativa').value,
+        tipo_solicitacao: document.getElementById('rec-tipo').value
+    };
+
+    try {
+        const response = await fetch('/api/recalculos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (response.ok) {
+            alert('Solicitação registrada com sucesso!');
+            e.target.reset();
+            carregarRecalculos();
+        } else {
+            const errorData = await response.json();
+            alert(`Erro ao registrar solicitação: ${errorData.error || 'Erro desconhecido'}`);
+        }
+    } catch (error) {
+        console.error('Erro ao salvar recálculo:', error);
+        alert('Erro de conexão com o servidor. Verifique se o servidor está rodando.');
+    }
+}
+
+async function carregarRecalculos() {
+    const nome = document.getElementById('filter-rec-nome').value;
+    const pedido = document.getElementById('filter-rec-pedido').value;
+    const status = document.getElementById('filter-rec-status').value;
+
+    let url = `/api/recalculos?`;
+    if (nome) url += `nome=${nome}&`;
+    if (pedido) url += `numero_pedido=${pedido}&`;
+    if (status) url += `status=${status}`;
+
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+        renderizarRecalculos(data);
+    } catch (error) {
+        console.error('Erro ao carregar recálculos:', error);
+    }
+}
+
+function renderizarRecalculos(recalculos) {
+    const container = document.getElementById('lista-recalculos');
+    if (!container) return;
+
+    if (recalculos.length === 0) {
+        container.innerHTML = '<p style="color: #888; font-style: italic; padding: 20px;">Nenhum registro encontrado.</p>';
+        return;
+    }
+
+    const tableHtml = `
+        <table class="history-table recalculos-table">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Nome</th>
+                    <th>Pedido</th>
+                    <th>Tipo</th>
+                    <th>Valor</th>
+                    <th>Justificativa</th>
+                    <th>Status</th>
+                    <th>Ação</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${recalculos.map(rec => `
+                    <tr>
+                        <td>${formatarDataHora(rec.criado_em)}</td>
+                        <td>${rec.nome}</td>
+                        <td>#${rec.numero_pedido}</td>
+                        <td><span class="badge-type">${rec.tipo_solicitacao}</span></td>
+                        <td>R$ ${rec.valor.toFixed(2)}</td>
+                        <td class="justificativa-cell" title="${rec.justificativa}">${rec.justificativa}</td>
+                        <td><span class="badge-status status-${rec.status.toLowerCase().replace(' ', '-')}">${rec.status}</span></td>
+                        <td>
+                            <select onchange="atualizarStatusRecalculo(${rec.id}, this.value)" class="status-select">
+                                <option value="Pendente" ${rec.status === 'Pendente' ? 'selected' : ''}>Pendente</option>
+                                <option value="Em andamento" ${rec.status === 'Em andamento' ? 'selected' : ''}>Em andamento</option>
+                                <option value="Finalizado" ${rec.status === 'Finalizado' ? 'selected' : ''}>Finalizado</option>
+                            </select>
+                        </td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+    container.innerHTML = tableHtml;
+}
+
+async function atualizarStatusRecalculo(id, novoStatus) {
+    try {
+        const response = await fetch(`/api/recalculos/${id}/status`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: novoStatus })
+        });
+
+        if (!response.ok) {
+            alert('Erro ao atualizar status.');
+            carregarRecalculos();
+        }
+    } catch (error) {
+        console.error('Erro ao atualizar status recálculo:', error);
+        alert('Erro de conexão com o servidor.');
+    }
+}
+
+async function exportarRecalculosExcel() {
+    const nome = document.getElementById('filter-rec-nome').value;
+    const pedido = document.getElementById('filter-rec-pedido').value;
+    const status = document.getElementById('filter-rec-status').value;
+
+    let url = `/api/recalculos?`;
+    if (nome) url += `nome=${nome}&`;
+    if (pedido) url += `numero_pedido=${pedido}&`;
+    if (status) url += `status=${status}`;
+
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.length === 0) {
+            alert('Não há dados para exportar com os filtros atuais.');
+            return;
+        }
+
+        // Formatar dados para o Excel
+        const rows = data.map(rec => ({
+            'Data': formatarDataHora(rec.criado_em),
+            'Nome do Solicitante': rec.nome,
+            'Nº do Pedido': `#${rec.numero_pedido}`,
+            'Tipo de Solicitação': rec.tipo_solicitacao,
+            'Valor (R$)': rec.valor,
+            'Justificativa': rec.justificativa,
+            'Status': rec.status
+        }));
+
+        // Criar uma planilha (Worksheet)
+        const worksheet = XLSX.utils.json_to_sheet(rows);
+
+        // Ajustar largura das colunas automaticamente
+        const colWidths = [
+            { wch: 20 }, // Data
+            { wch: 25 }, // Nome
+            { wch: 15 }, // Pedido
+            { wch: 20 }, // Tipo
+            { wch: 15 }, // Valor
+            { wch: 40 }, // Justificativa
+            { wch: 15 }  // Status
+        ];
+        worksheet['!cols'] = colWidths;
+
+        // Criar um livro (Workbook)
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Recalculos e Trocas");
+
+        // Gerar arquivo e baixar
+        XLSX.writeFile(workbook, `Recalculos_Trocas_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+    } catch (error) {
+        console.error('Erro ao exportar Excel:', error);
+        alert('Erro ao gerar o arquivo Excel.');
+    }
 }
