@@ -42,3 +42,11 @@ Sistema interno simples para controle de ocorrências de pedidos (cancelamentos 
 - Pedidos cancelados recebem um destaque visual "NÃO ENVIAR".
 - Mudanças de endereço destacam o novo endereço para a expedição.
 - O status "Concluído" remove o pedido da lista operacional e o move para o histórico.
+
+
+
+<p align="center">
+  <img src="Imagens/스크린샷 2026-06-05 115247.png" width="900">
+</p>
+
+
