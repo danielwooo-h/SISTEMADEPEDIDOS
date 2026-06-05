@@ -45,8 +45,6 @@ Sistema interno simples para controle de ocorrências de pedidos (cancelamentos 
 
 
 
-<p align="center">
-  <img src="Imagens/스크린샷 2026-06-05 115247.png" width="900">
-</p>
+
 
 
